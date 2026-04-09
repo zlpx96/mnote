@@ -13,7 +13,7 @@
 
     <div v-if="loading" class="loading">加载中...</div>
     <div v-else-if="error" class="error-msg">{{ error }}</div>
-    <div v-else-if="items.length === 0" class="empty">此目录为空或没有 .md 文件</div>
+    <div v-else-if="items.length === 0" class="empty">此目录为空</div>
 
     <ul v-else class="file-list">
       <li

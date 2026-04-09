@@ -19,6 +19,13 @@ export function useGitHub(token) {
       `${BASE}/search/repositories?q=${encodeURIComponent(query)}+user:@me&per_page=10`,
       { headers }
     )
+    if (res.status === 403 || res.status === 429) {
+      const data = await res.clone().json().catch(() => ({}))
+      if (data.message?.includes('rate limit')) {
+        const reset = res.headers.get('X-RateLimit-Reset')
+        throw new Error(`RATE_LIMIT:${reset}`)
+      }
+    }
     if (!res.ok) throw new Error('Search failed')
     const data = await res.json()
     return data.items.map(r => ({ full_name: r.full_name, description: r.description, private: r.private }))

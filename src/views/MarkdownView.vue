@@ -18,6 +18,10 @@ import { marked } from 'marked'
 import { useStorage } from '../composables/useStorage.js'
 import { useGitHub } from '../composables/useGitHub.js'
 
+// 配置 marked：禁止渲染原始 HTML 标签（防 XSS）
+const renderer = new marked.Renderer()
+renderer.html = () => ''
+
 const router = useRouter()
 const route = useRoute()
 const { getToken } = useStorage()
@@ -31,12 +35,12 @@ const fileName = computed(() => {
   return parts[parts.length - 1]
 })
 
-const rendered = computed(() => marked.parse(content.value))
+const rendered = computed(() => marked.parse(content.value, { renderer }))
 
 const CACHE_PREFIX = 'mnote_cache_'
 
 function getCacheKey() {
-  return `${CACHE_PREFIX}${route.params.owner}_${route.params.repo}_${route.params.path}`
+  return `${CACHE_PREFIX}${route.params.owner}/${route.params.repo}/${route.params.path}`
 }
 
 onMounted(async () => {

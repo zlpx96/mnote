@@ -13,6 +13,10 @@ export function useStorage() {
 
   function clearToken() {
     localStorage.removeItem(TOKEN_KEY)
+    // 清除文件缓存，防止旧用户内容残留
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('mnote_cache_'))
+      .forEach(k => localStorage.removeItem(k))
   }
 
   function getRepos() {
