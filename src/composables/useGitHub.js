@@ -16,7 +16,7 @@ export function useGitHub(token) {
 
   async function searchRepos(query) {
     const res = await fetch(
-      `${BASE}/search/repositories?q=${encodeURIComponent(query)}+user:@me&per_page=10`,
+      `${BASE}/search/repositories?q=${encodeURIComponent(query)}&per_page=10`,
       { headers }
     )
     if (res.status === 403 || res.status === 429) {
