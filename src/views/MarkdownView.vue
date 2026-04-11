@@ -44,7 +44,13 @@ import { useGitHub } from '../composables/useGitHub.js'
 const NOTE_OWNER = 'zlpx96'
 const NOTE_REPO = 'mnote-data'
 
+const router = useRouter()
+const route = useRoute()
 const { getToken, isFavorite, toggleFavorite } = useStorage()
+
+// 配置 marked：禁止渲染原始 HTML 标签（防 XSS）
+const renderer = new marked.Renderer()
+renderer.html = () => ''
 
 const favorited = ref(isFavorite(
   route.params.owner,
@@ -69,13 +75,6 @@ function handleToggleFavorite() {
   })
   favorited.value = isFavorite(route.params.owner, route.params.repo, route.params.path)
 }
-
-// 配置 marked：禁止渲染原始 HTML 标签（防 XSS）
-const renderer = new marked.Renderer()
-renderer.html = () => ''
-
-const router = useRouter()
-const route = useRoute()
 
 const content = ref('')
 const loading = ref(false)
