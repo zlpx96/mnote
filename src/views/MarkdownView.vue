@@ -3,6 +3,7 @@
     <header class="page-header">
       <button class="back-btn" @click="router.back()">←</button>
       <span class="file-title">{{ fileName }}</span>
+      <button class="fav-btn" @click="handleToggleFavorite">{{ favorited ? '★' : '☆' }}</button>
     </header>
 
     <div v-if="loading" class="loading">加载中...</div>
@@ -18,13 +19,30 @@ import { marked } from 'marked'
 import { useStorage } from '../composables/useStorage.js'
 import { useGitHub } from '../composables/useGitHub.js'
 
+const { getToken, isFavorite, toggleFavorite } = useStorage()
+
+const favorited = ref(isFavorite(
+  route.params.owner,
+  route.params.repo,
+  route.params.path
+))
+
+function handleToggleFavorite() {
+  toggleFavorite({
+    owner: route.params.owner,
+    repo: route.params.repo,
+    path: route.params.path,
+    title: fileName.value,
+  })
+  favorited.value = isFavorite(route.params.owner, route.params.repo, route.params.path)
+}
+
 // 配置 marked：禁止渲染原始 HTML 标签（防 XSS）
 const renderer = new marked.Renderer()
 renderer.html = () => ''
 
 const router = useRouter()
 const route = useRoute()
-const { getToken } = useStorage()
 
 const content = ref('')
 const loading = ref(false)
@@ -125,6 +143,16 @@ onUnmounted(() => {
   color: #0969da;
   padding: 4px;
   flex-shrink: 0;
+}
+
+.fav-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #e3a008;
+  padding: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .file-title {

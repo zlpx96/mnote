@@ -1,6 +1,7 @@
 // src/composables/useStorage.js
 const TOKEN_KEY = 'mnote_token'
 const REPOS_KEY = 'mnote_repos'
+const FAVORITES_KEY = 'mnote_favorites'
 
 export function useStorage() {
   function getToken() {
@@ -44,5 +45,28 @@ export function useStorage() {
     saveRepos(repos)
   }
 
-  return { getToken, setToken, clearToken, getRepos, addRepo, removeRepo }
+  function getFavorites() {
+    try {
+      return JSON.parse(localStorage.getItem(FAVORITES_KEY)) || []
+    } catch {
+      return []
+    }
+  }
+
+  function isFavorite(owner, repo, path) {
+    return getFavorites().some(f => f.owner === owner && f.repo === repo && f.path === path)
+  }
+
+  function toggleFavorite(item) {
+    const favs = getFavorites()
+    const idx = favs.findIndex(f => f.owner === item.owner && f.repo === item.repo && f.path === item.path)
+    if (idx >= 0) {
+      favs.splice(idx, 1)
+    } else {
+      favs.unshift(item)
+    }
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favs))
+  }
+
+  return { getToken, setToken, clearToken, getRepos, addRepo, removeRepo, getFavorites, isFavorite, toggleFavorite }
 }

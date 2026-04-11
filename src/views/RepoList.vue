@@ -3,10 +3,28 @@
     <header class="page-header">
       <h1>我的仓库</h1>
       <div class="header-actions">
+        <button class="icon-btn" @click="showFavorites = !showFavorites" title="收藏">★</button>
         <button class="icon-btn" @click="showSearch = true">＋</button>
         <button class="icon-btn" @click="handleReset" title="重置 Token">⚙</button>
       </div>
     </header>
+
+    <!-- 收藏面板 -->
+    <div v-if="showFavorites" class="favorites-panel">
+      <div class="favorites-header">收藏</div>
+      <div v-if="favorites.length === 0" class="favorites-empty">还没有收藏</div>
+      <ul v-else class="favorites-list">
+        <li
+          v-for="fav in favorites"
+          :key="fav.owner + fav.repo + fav.path"
+          class="fav-item"
+          @click="router.push(`/repo/${fav.owner}/${fav.repo}/file/${fav.path}`)"
+        >
+          <span class="fav-title">{{ fav.title }}</span>
+          <span class="fav-repo">{{ fav.owner }}/{{ fav.repo }}</span>
+        </li>
+      </ul>
+    </div>
 
     <div v-if="repos.length === 0" class="empty">
       <p>还没有添加仓库</p>
@@ -60,10 +78,12 @@ import { useStorage } from '../composables/useStorage.js'
 import { useGitHub } from '../composables/useGitHub.js'
 
 const router = useRouter()
-const { getToken, clearToken, getRepos, addRepo, removeRepo } = useStorage()
+const { getToken, clearToken, getRepos, addRepo, removeRepo, getFavorites } = useStorage()
 
 const repos = ref([])
 const showSearch = ref(false)
+const showFavorites = ref(false)
+const favorites = ref([])
 const searchQuery = ref('')
 const searchResults = ref([])
 const searching = ref(false)
@@ -71,6 +91,7 @@ const searchError = ref('')
 
 onMounted(() => {
   repos.value = getRepos()
+  favorites.value = getFavorites()
 })
 
 function handleRemove(fullName) {
@@ -194,6 +215,56 @@ function handleAdd(repo) {
 .repo-desc {
   font-size: 13px;
   color: #666;
+  margin-top: 2px;
+}
+
+.favorites-panel {
+  background: white;
+  margin: 12px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.favorites-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  padding: 10px 16px 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.favorites-empty {
+  padding: 16px;
+  color: #999;
+  font-size: 14px;
+}
+
+.favorites-list {
+  list-style: none;
+}
+
+.fav-item {
+  padding: 12px 16px;
+  border-top: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.fav-item:active {
+  background: #f5f5f5;
+}
+
+.fav-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.fav-repo {
+  display: block;
+  font-size: 12px;
+  color: #999;
   margin-top: 2px;
 }
 
