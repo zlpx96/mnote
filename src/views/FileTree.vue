@@ -1,7 +1,7 @@
 <template>
   <div class="page">
     <header class="page-header">
-      <button class="back-btn" @click="router.back()">←</button>
+      <button class="back-btn" @click="history.state?.back?.startsWith('/') ? router.back() : router.push('/')">←</button>
       <div class="breadcrumb">
         <span @click="navigateTo('')" class="crumb">{{ route.params.repo }}</span>
         <template v-for="(seg, i) in pathSegments" :key="i">

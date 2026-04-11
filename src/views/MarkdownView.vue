@@ -1,7 +1,7 @@
 <template>
   <div class="page">
     <header class="page-header">
-      <button class="back-btn" @click="router.back()">←</button>
+      <button class="back-btn" @click="handleBack">←</button>
       <span class="file-title">{{ fileName }}</span>
       <button class="fav-btn" @click="handleToggleFavorite">{{ favorited ? '★' : '☆' }}</button>
     </header>
@@ -26,6 +26,14 @@ const favorited = ref(isFavorite(
   route.params.repo,
   route.params.path
 ))
+
+function handleBack() {
+  if (history.state?.back?.startsWith('/')) {
+    router.back()
+  } else {
+    router.push('/')
+  }
+}
 
 function handleToggleFavorite() {
   toggleFavorite({
