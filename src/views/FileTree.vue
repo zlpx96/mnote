@@ -64,7 +64,9 @@ async function loadContents(path) {
     const data = await getContents(route.params.owner, route.params.repo, path)
     items.value = Array.isArray(data) ? data : [data]
   } catch (e) {
-    if (e.message.startsWith('RATE_LIMIT:')) {
+    if (e.message === 'UNAUTHORIZED') {
+      router.push('/setup')
+    } else if (e.message.startsWith('RATE_LIMIT:')) {
       const reset = new Date(parseInt(e.message.split(':')[1]) * 1000)
       error.value = `API 限流，请在 ${reset.toLocaleTimeString()} 后重试`
     } else {

@@ -58,7 +58,9 @@ onMounted(async () => {
     content.value = text
     localStorage.setItem(getCacheKey(), text)
   } catch (e) {
-    if (!cached) {
+    if (e.message === 'UNAUTHORIZED') {
+      router.push('/setup')
+    } else if (!cached) {
       if (e.message.startsWith('RATE_LIMIT:')) {
         const reset = new Date(parseInt(e.message.split(':')[1]) * 1000)
         error.value = `API 限流，请在 ${reset.toLocaleTimeString()} 后重试`

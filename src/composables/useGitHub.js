@@ -15,10 +15,15 @@ export function useGitHub(token) {
   }
 
   async function searchRepos(query) {
-    const res = await fetch(
-      `${BASE}/search/repositories?q=${encodeURIComponent(query)}&per_page=10`,
-      { headers }
-    )
+    const res = await request(`${BASE}/search/repositories?q=${encodeURIComponent(query)}&per_page=10`)
+    if (!res.ok) throw new Error('Search failed')
+    const data = await res.json()
+    return data.items.map(r => ({ full_name: r.full_name, description: r.description, private: r.private }))
+  }
+
+  async function request(url) {
+    const res = await fetch(url, { headers })
+    if (res.status === 401) throw new Error('UNAUTHORIZED')
     if (res.status === 403 || res.status === 429) {
       const data = await res.clone().json().catch(() => ({}))
       if (data.message?.includes('rate limit')) {
@@ -26,23 +31,11 @@ export function useGitHub(token) {
         throw new Error(`RATE_LIMIT:${reset}`)
       }
     }
-    if (!res.ok) throw new Error('Search failed')
-    const data = await res.json()
-    return data.items.map(r => ({ full_name: r.full_name, description: r.description, private: r.private }))
+    return res
   }
 
   async function getContents(owner, repo, path = '') {
-    const res = await fetch(
-      `${BASE}/repos/${owner}/${repo}/contents/${path}`,
-      { headers }
-    )
-    if (res.status === 403) {
-      const data = await res.json()
-      if (data.message?.includes('rate limit')) {
-        const reset = res.headers.get('X-RateLimit-Reset')
-        throw new Error(`RATE_LIMIT:${reset}`)
-      }
-    }
+    const res = await request(`${BASE}/repos/${owner}/${repo}/contents/${path}`)
     if (!res.ok) throw new Error(`Failed to get contents: ${res.status}`)
     return await res.json()
   }

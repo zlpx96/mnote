@@ -92,8 +92,13 @@ async function handleSearch() {
   try {
     const { searchRepos } = useGitHub(getToken())
     searchResults.value = await searchRepos(searchQuery.value.trim())
-  } catch {
-    searchError.value = '搜索失败，请重试'
+  } catch (e) {
+    if (e.message === 'UNAUTHORIZED') {
+      clearToken()
+      router.push('/setup')
+    } else {
+      searchError.value = '搜索失败，请重试'
+    }
   } finally {
     searching.value = false
   }
