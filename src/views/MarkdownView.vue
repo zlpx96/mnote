@@ -59,7 +59,7 @@ const favorited = ref(isFavorite(
 ))
 
 function handleBack() {
-  if (history.state?.back?.startsWith('/')) {
+  if (window.history.state?.back?.startsWith('/')) {
     router.back()
   } else {
     router.push('/')

@@ -1,7 +1,7 @@
 <template>
   <div class="page">
     <header class="page-header">
-      <button class="back-btn" @click="history.state?.back?.startsWith('/') ? router.back() : router.push('/')">←</button>
+      <button class="back-btn" @click="handleBack">←</button>
       <div class="breadcrumb">
         <span @click="navigateTo('')" class="crumb">{{ route.params.repo }}</span>
         <template v-for="(seg, i) in pathSegments" :key="i">
@@ -37,6 +37,14 @@ import { useStorage } from '../composables/useStorage.js'
 import { useGitHub } from '../composables/useGitHub.js'
 
 const router = useRouter()
+
+function handleBack() {
+  if (window.history.state?.back?.startsWith('/')) {
+    router.back()
+  } else {
+    router.push('/')
+  }
+}
 const route = useRoute()
 const { getToken } = useStorage()
 
