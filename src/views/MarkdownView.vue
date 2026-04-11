@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { marked } from 'marked'
 import { useStorage } from '../composables/useStorage.js'
@@ -38,16 +38,34 @@ const fileName = computed(() => {
 const rendered = computed(() => marked.parse(content.value, { renderer }))
 
 const CACHE_PREFIX = 'mnote_cache_'
+const SCROLL_PREFIX = 'mnote_scroll_'
 
 function getCacheKey() {
   return `${CACHE_PREFIX}${route.params.owner}/${route.params.repo}/${route.params.path}`
 }
 
+function getScrollKey() {
+  return `${SCROLL_PREFIX}${route.params.owner}/${route.params.repo}/${route.params.path}`
+}
+
+function saveScroll() {
+  localStorage.setItem(getScrollKey(), String(window.scrollY))
+}
+
+function restoreScroll() {
+  const saved = localStorage.getItem(getScrollKey())
+  if (saved) window.scrollTo(0, parseInt(saved))
+}
+
 onMounted(async () => {
+  window.addEventListener('scroll', saveScroll)
+
   // 先尝试读取缓存
   const cached = localStorage.getItem(getCacheKey())
   if (cached) {
     content.value = cached
+    await nextTick()
+    restoreScroll()
   }
 
   loading.value = !cached
@@ -57,6 +75,10 @@ onMounted(async () => {
     const text = await getFileContent(route.params.owner, route.params.repo, route.params.path)
     content.value = text
     localStorage.setItem(getCacheKey(), text)
+    if (!cached) {
+      await nextTick()
+      restoreScroll()
+    }
   } catch (e) {
     if (e.message === 'UNAUTHORIZED') {
       router.push('/setup')
@@ -72,6 +94,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', saveScroll)
 })
 </script>
 

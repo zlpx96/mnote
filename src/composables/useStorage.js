@@ -13,9 +13,9 @@ export function useStorage() {
 
   function clearToken() {
     localStorage.removeItem(TOKEN_KEY)
-    // 清除文件缓存，防止旧用户内容残留
+    // 清除文件缓存和滚动记录，防止旧用户内容残留
     Object.keys(localStorage)
-      .filter(k => k.startsWith('mnote_cache_'))
+      .filter(k => k.startsWith('mnote_cache_') || k.startsWith('mnote_scroll_'))
       .forEach(k => localStorage.removeItem(k))
   }
 
