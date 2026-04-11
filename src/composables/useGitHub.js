@@ -43,7 +43,9 @@ export function useGitHub(token) {
   async function getFileContent(owner, repo, path) {
     const data = await getContents(owner, repo, path)
     if (data.encoding !== 'base64') throw new Error('Unexpected encoding')
-    return atob(data.content.replace(/\n/g, ''))
+    const binary = atob(data.content.replace(/\n/g, ''))
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0))
+    return new TextDecoder('utf-8').decode(bytes)
   }
 
   return { validateToken, searchRepos, getContents, getFileContent }
