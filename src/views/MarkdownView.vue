@@ -9,6 +9,28 @@
     <div v-if="loading" class="loading">加载中...</div>
     <div v-else-if="error" class="error-msg">{{ error }}</div>
     <article v-else class="markdown-body" v-html="rendered" />
+
+    <!-- 笔记区域 -->
+    <div v-if="!loading && !error" class="note-section">
+      <div class="note-header" @click="showNote = !showNote">
+        <span>笔记</span>
+        <span class="note-toggle">{{ showNote ? '▲' : '▼' }}</span>
+      </div>
+      <div v-if="showNote" class="note-body">
+        <textarea
+          v-model="noteContent"
+          placeholder="在这里写笔记..."
+          class="note-textarea"
+          :disabled="noteSaving"
+        />
+        <div class="note-actions">
+          <span v-if="noteStatus" class="note-status">{{ noteStatus }}</span>
+          <button @click="saveNote" :disabled="noteSaving || noteContent === noteSaved">
+            {{ noteSaving ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -18,6 +40,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { marked } from 'marked'
 import { useStorage } from '../composables/useStorage.js'
 import { useGitHub } from '../composables/useGitHub.js'
+
+const NOTE_OWNER = 'zlpx96'
+const NOTE_REPO = 'mnote-data'
 
 const { getToken, isFavorite, toggleFavorite } = useStorage()
 
@@ -56,6 +81,49 @@ const content = ref('')
 const loading = ref(false)
 const error = ref('')
 
+// 笔记
+const showNote = ref(false)
+const noteContent = ref('')
+const noteSaved = ref('')
+const noteSaving = ref(false)
+const noteStatus = ref('')
+
+function getNotePath() {
+  return `notes/${route.params.owner}/${route.params.repo}/${route.params.path}`
+}
+
+async function loadNote() {
+  try {
+    const { getFileContent } = useGitHub(getToken())
+    const text = await getFileContent(NOTE_OWNER, NOTE_REPO, getNotePath())
+    noteContent.value = text
+    noteSaved.value = text
+  } catch {
+    // 笔记不存在是正常情况，忽略
+  }
+}
+
+async function saveNote() {
+  noteSaving.value = true
+  noteStatus.value = ''
+  try {
+    const { putFile, getFileSha } = useGitHub(getToken())
+    const sha = await getFileSha(NOTE_OWNER, NOTE_REPO, getNotePath())
+    await putFile(NOTE_OWNER, NOTE_REPO, getNotePath(), noteContent.value, sha)
+    noteSaved.value = noteContent.value
+    noteStatus.value = '已保存'
+    setTimeout(() => { noteStatus.value = '' }, 2000)
+  } catch (e) {
+    if (e.message === 'UNAUTHORIZED') {
+      router.push('/setup')
+    } else {
+      noteStatus.value = '保存失败'
+    }
+  } finally {
+    noteSaving.value = false
+  }
+}
+
 const fileName = computed(() => {
   const parts = route.params.path.split('/')
   return parts[parts.length - 1]
@@ -85,6 +153,7 @@ function restoreScroll() {
 
 onMounted(async () => {
   window.addEventListener('scroll', saveScroll)
+  loadNote()
 
   // 先尝试读取缓存
   const cached = localStorage.getItem(getCacheKey())
@@ -182,12 +251,79 @@ onUnmounted(() => {
 }
 
 .markdown-body {
-  padding: 20px 16px 48px;
+  padding: 20px 16px 24px;
   font-size: 16px;
   line-height: 1.7;
   color: #1a1a1a;
   max-width: 720px;
   margin: 0 auto;
+}
+
+.note-section {
+  max-width: 720px;
+  margin: 0 auto 48px;
+  padding: 0 16px;
+}
+
+.note-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #444;
+  border-top: 1px solid #e0e0e0;
+  cursor: pointer;
+}
+
+.note-toggle {
+  font-size: 12px;
+  color: #999;
+}
+
+.note-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+}
+
+.note-textarea:focus {
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9,105,218,0.1);
+}
+
+.note-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.note-status {
+  font-size: 13px;
+  color: #666;
+}
+
+.note-actions button {
+  padding: 8px 20px;
+  background: #0969da;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.note-actions button:disabled {
+  opacity: 0.5;
 }
 </style>
 

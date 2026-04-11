@@ -48,5 +48,29 @@ export function useGitHub(token) {
     return new TextDecoder('utf-8').decode(bytes)
   }
 
-  return { validateToken, searchRepos, getContents, getFileContent }
+  async function putFile(owner, repo, path, content, sha = null) {
+    const body = {
+      message: sha ? `update: ${path}` : `create: ${path}`,
+      content: btoa(unescape(encodeURIComponent(content))),
+    }
+    if (sha) body.sha = sha
+    const res = await fetch(`${BASE}/repos/${owner}/${repo}/contents/${path}`, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (res.status === 401) throw new Error('UNAUTHORIZED')
+    if (!res.ok) throw new Error(`Failed to write file: ${res.status}`)
+    return await res.json()
+  }
+
+  async function getFileSha(owner, repo, path) {
+    const res = await request(`${BASE}/repos/${owner}/${repo}/contents/${path}`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error(`Failed to get file sha: ${res.status}`)
+    const data = await res.json()
+    return data.sha
+  }
+
+  return { validateToken, searchRepos, getContents, getFileContent, putFile, getFileSha }
 }
