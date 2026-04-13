@@ -9,7 +9,35 @@
           <span @click="navigateTo(pathSegments.slice(0, i+1).join('/'))" class="crumb">{{ seg }}</span>
         </template>
       </div>
+      <button class="new-btn" @click="showNew = true">＋</button>
     </header>
+
+    <!-- 新建文档弹窗 -->
+    <div v-if="showNew" class="modal-overlay" @click.self="closeNew">
+      <div class="modal">
+        <h2>新建文档</h2>
+        <div class="modal-path">位置：{{ currentPath || '根目录' }}</div>
+        <input
+          v-model="newFileName"
+          placeholder="文件名（无需加 .md）"
+          :disabled="newSaving"
+          @keyup.enter="newContent ? null : null"
+        />
+        <textarea
+          v-model="newContent"
+          placeholder="内容（可选，支持 Markdown）"
+          class="new-textarea"
+          :disabled="newSaving"
+        />
+        <p v-if="newError" class="error">{{ newError }}</p>
+        <div class="modal-actions">
+          <button class="cancel-btn" @click="closeNew" :disabled="newSaving">取消</button>
+          <button @click="handleCreate" :disabled="newSaving || !newFileName.trim()">
+            {{ newSaving ? '创建中...' : '创建' }}
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div v-if="loading" class="loading">加载中...</div>
     <div v-else-if="error" class="error-msg">{{ error }}</div>
@@ -49,6 +77,42 @@ const route = useRoute()
 const { getToken } = useStorage()
 
 const items = ref([])
+const showNew = ref(false)
+const newFileName = ref('')
+const newContent = ref('')
+const newSaving = ref(false)
+const newError = ref('')
+
+function closeNew() {
+  showNew.value = false
+  newFileName.value = ''
+  newContent.value = ''
+  newError.value = ''
+}
+
+async function handleCreate() {
+  const name = newFileName.value.trim()
+  const fileName = name.endsWith('.md') ? name : `${name}.md`
+  const filePath = currentPath.value ? `${currentPath.value}/${fileName}` : fileName
+
+  newSaving.value = true
+  newError.value = ''
+  try {
+    const { putFile } = useGitHub(getToken())
+    await putFile(route.params.owner, route.params.repo, filePath, newContent.value)
+    closeNew()
+    await loadContents(currentPath.value)
+    router.push(`/repo/${route.params.owner}/${route.params.repo}/file/${filePath}`)
+  } catch (e) {
+    if (e.message === 'UNAUTHORIZED') {
+      router.push('/setup')
+    } else {
+      newError.value = '创建失败：' + e.message
+    }
+  } finally {
+    newSaving.value = false
+  }
+}
 const loading = ref(false)
 const error = ref('')
 const currentPath = ref('')
@@ -124,6 +188,109 @@ onMounted(() => loadContents(''))
   font-size: 20px;
   color: #0969da;
   padding: 4px;
+}
+
+.new-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #0969da;
+  padding: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: flex-end;
+  z-index: 100;
+}
+
+.modal {
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding: 24px 16px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.modal-path {
+  font-size: 13px;
+  color: #999;
+}
+
+.modal input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+}
+
+.modal input:focus {
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9,105,218,0.1);
+}
+
+.new-textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 10px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+}
+
+.new-textarea:focus {
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9,105,218,0.1);
+}
+
+.error {
+  color: #d1242f;
+  font-size: 14px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.modal-actions button {
+  flex: 1;
+  padding: 11px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  background: #0969da;
+  color: white;
+}
+
+.modal-actions button:disabled {
+  opacity: 0.5;
+}
+
+.cancel-btn {
+  background: #f0f0f0 !important;
+  color: #333 !important;
 }
 
 .breadcrumb {
