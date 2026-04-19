@@ -9,6 +9,7 @@ MNOTE_DATA="${1:?需要传入 mnote-data 仓库路径}"
 WORK_DIR="${2:-$HOME}"
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
 LOG_FILE="${LOG_FILE:-$MNOTE_DATA/watch.log}"
+ARTICLE_DIR="${ARTICLE_DIR:-$HOME/gitnotes/article}"
 
 log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
@@ -54,6 +55,60 @@ for TASK_FILE in "${TASKS[@]}"; do
 
   log "任务内容: ${PROMPT:0:100}..."
 
+  # 判断是否是公众号写作任务：article 目录存在则注入写作上下文
+  FULL_PROMPT="$PROMPT"
+  if [[ -d "$ARTICLE_DIR" ]]; then
+    README="$ARTICLE_DIR/README.md"
+    AGENTS="$ARTICLE_DIR/AGENTS.md"
+    REQ="$ARTICLE_DIR/config/requirement.md"
+    REQ_ONCE="$ARTICLE_DIR/config/requirement_once.md"
+    TMPL="$ARTICLE_DIR/config/template.md"
+    TMPL_SNOW="$ARTICLE_DIR/config/template_snow.md"
+
+    FULL_PROMPT="$(cat <<TASK_EOF
+你是一位公众号写作助手。用户通过手机发来了一段素材，请根据素材内容自动判断最适合的文章类型和目标公众号，然后完整创作一篇文章并保存到正确目录。
+
+## 用户素材
+
+$PROMPT
+
+## 目录结构与规范
+
+$(cat "$README" 2>/dev/null || echo '（README 不存在）')
+
+## 写作经验（AGENTS.md）
+
+$(cat "$AGENTS" 2>/dev/null || echo '（AGENTS 不存在）')
+
+## 飘雪思考 / 思维体系写作要求
+
+$(cat "$REQ" 2>/dev/null || echo '（requirement.md 不存在）')
+
+## 从前的事写作要求
+
+$(cat "$REQ_ONCE" 2>/dev/null || echo '（requirement_once.md 不存在）')
+
+## 飘雪思考文章模板
+
+$(cat "$TMPL_SNOW" 2>/dev/null || echo '（template_snow.md 不存在）')
+
+## 思维体系文章模板
+
+$(cat "$TMPL" 2>/dev/null || echo '（template.md 不存在）')
+
+## 执行要求
+
+1. 先判断素材适合哪个公众号（飘雪思考 / 思维体系 / 从前的事 stories/mini/essay）及对应分类子目录
+2. 按对应写作要求完整创作文章（不要只列大纲）
+3. 将文章保存到 $ARTICLE_DIR 下的正确目录（参考 README.md 中的归档规则）
+4. 文件名用文章主标题命名（.md 后缀）
+5. 飘雪思考 / 思维体系的新文章先放 $ARTICLE_DIR/temp/ 目录
+6. 从前的事的新文章直接放对应分类目录
+7. 最后输出：文章类型、保存路径、文章标题
+TASK_EOF
+)"
+  fi
+
   # 执行 Claude Code，输出写入临时文件
   RESULT_TMP="$(mktemp)"
   START_TS="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -61,7 +116,7 @@ for TASK_FILE in "${TASKS[@]}"; do
 
   (
     cd "$WORK_DIR"
-    "$CLAUDE_BIN" --print --dangerously-skip-permissions "$PROMPT" 2>&1
+    "$CLAUDE_BIN" --print --dangerously-skip-permissions "$FULL_PROMPT" 2>&1
   ) > "$RESULT_TMP" || EXIT_CODE=$?
 
   END_TS="$(date '+%Y-%m-%d %H:%M:%S')"
