@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- 修改下面三个路径后再安装 -->
+  <!-- MNOTE_DATA_PATH: mnote-data 本地仓库路径 -->
+  <!-- WORK_DIR_PATH:   Claude Code 执行任务时的工作目录 -->
+  <!-- WATCH_SH_PATH:   watch.sh 的完整路径 -->
+
+  <key>Label</key>
+  <string>com.mnote.watch</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>WATCH_SH_PATH</string>
+    <string>MNOTE_DATA_PATH</string>
+    <string>WORK_DIR_PATH</string>
+  </array>
+
+  <!-- 每 2 分钟运行一次 -->
+  <key>StartInterval</key>
+  <integer>120</integer>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>MNOTE_DATA_PATH/launchd.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>MNOTE_DATA_PATH/launchd.log</string>
+
+  <!-- 需要网络和 GUI session（Claude Code 需要 keychain） -->
+  <key>LimitLoadToSessionType</key>
+  <string>Aqua</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- 如果 claude 不在默认 PATH 里，填完整路径 -->
+    <key>CLAUDE_BIN</key>
+    <string>/usr/local/bin/claude</string>
+    <key>HOME</key>
+    <string>/Users/YOUR_USERNAME</string>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+  </dict>
+</dict>
+</plist>
