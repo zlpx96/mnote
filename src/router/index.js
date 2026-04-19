@@ -22,6 +22,11 @@ const routes = [
     component: () => import('../views/MarkdownView.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/tasks',
+    component: () => import('../views/TaskList.vue'),
+    meta: { requiresAuth: true },
+  },
 ]
 
 const router = createRouter({

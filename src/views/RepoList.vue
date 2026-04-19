@@ -3,6 +3,7 @@
     <header class="page-header">
       <h1>我的仓库</h1>
       <div class="header-actions">
+        <button class="icon-btn" @click="router.push('/tasks')" title="任务">✦</button>
         <button class="icon-btn" @click="showFavorites = !showFavorites" title="收藏">★</button>
         <button class="icon-btn" @click="showSearch = true">＋</button>
         <button class="icon-btn" @click="handleReset" title="重置 Token">⚙</button>
