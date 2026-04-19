@@ -7,7 +7,7 @@ set -euo pipefail
 
 MNOTE_DATA="${1:?需要传入 mnote-data 仓库路径}"
 WORK_DIR="${2:-$HOME}"
-CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+CLAUDE_BIN="${CLAUDE_BIN:-opencode run}"
 LOG_FILE="${LOG_FILE:-$MNOTE_DATA/watch.log}"
 ARTICLE_DIR="${ARTICLE_DIR:-$HOME/gitnotes/article}"
 
@@ -98,13 +98,16 @@ $(cat "$TMPL" 2>/dev/null || echo '（template.md 不存在）')
 
 ## 执行要求
 
-1. 先判断素材适合哪个公众号（飘雪思考 / 思维体系 / 从前的事 stories/mini/essay）及对应分类子目录
-2. 按对应写作要求完整创作文章（不要只列大纲）
-3. 将文章保存到 $ARTICLE_DIR 下的正确目录（参考 README.md 中的归档规则）
-4. 文件名用文章主标题命名（.md 后缀）
-5. 飘雪思考 / 思维体系的新文章先放 $ARTICLE_DIR/temp/ 目录
-6. 从前的事的新文章直接放对应分类目录
-7. 最后输出：文章类型、保存路径、文章标题
+**重要：这是全自动无人值守模式，不能暂停等待用户确认，必须一次性完成所有步骤。**
+
+1. 判断素材适合哪个公众号（飘雪思考 / 思维体系 / 从前的事 stories/mini/essay）及对应分类子目录
+2. 自主选定一个最合适的方向和标题，不要列出选项等待确认
+3. 按对应写作要求完整创作文章正文（不少于要求字数，不要只列大纲）
+4. 将文章保存到 $ARTICLE_DIR 下的正确目录（参考 README.md 中的归档规则）
+5. 文件名用文章主标题命名（.md 后缀）
+6. 飘雪思考 / 思维体系的新文章先放 $ARTICLE_DIR/temp/ 目录
+7. 从前的事的新文章直接放对应分类目录
+8. 最后输出：文章类型、保存路径、文章标题
 TASK_EOF
 )"
   fi
@@ -116,7 +119,7 @@ TASK_EOF
 
   (
     cd "$WORK_DIR"
-    "$CLAUDE_BIN" --print --dangerously-skip-permissions "$FULL_PROMPT" 2>&1
+    $CLAUDE_BIN "$FULL_PROMPT" 2>&1
   ) > "$RESULT_TMP" || EXIT_CODE=$?
 
   END_TS="$(date '+%Y-%m-%d %H:%M:%S')"
