@@ -12,11 +12,30 @@
         <h2>发送任务</h2>
         <textarea
           v-model="newTask"
-          placeholder="描述你想让远程电脑执行的任务..."
+          placeholder="粘贴文章 URL，或描述你想创作的内容..."
           class="task-textarea"
           :disabled="sending"
           autofocus
         />
+        <div class="task-options">
+          <div class="option-row">
+            <label>目标账号</label>
+            <select v-model="newTarget" :disabled="sending">
+              <option value="">自动判断</option>
+              <option value="snow">飘雪思考</option>
+              <option value="system">思维体系</option>
+              <option value="once">从前的事</option>
+              <option value="toutiao">今日头条</option>
+            </select>
+          </div>
+          <div class="option-row">
+            <label>发布到草稿箱</label>
+            <label class="toggle">
+              <input type="checkbox" v-model="autoPublish" :disabled="sending" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
         <p v-if="sendError" class="error">{{ sendError }}</p>
         <div class="modal-actions">
           <button class="cancel-btn" @click="closeNew" :disabled="sending">取消</button>
@@ -79,6 +98,8 @@ const loading = ref(false)
 const loadError = ref('')
 const showNew = ref(false)
 const newTask = ref('')
+const newTarget = ref('')
+const autoPublish = ref(false)
 const sending = ref(false)
 const sendError = ref('')
 
@@ -88,6 +109,8 @@ const doneTasks = computed(() => tasks.value.filter(t => t.status === 'done'))
 function closeNew() {
   showNew.value = false
   newTask.value = ''
+  newTarget.value = ''
+  autoPublish.value = false
   sendError.value = ''
 }
 
@@ -147,7 +170,13 @@ async function handleSend() {
   const now = new Date()
   const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`
   const filePath = `tasks/pending/${ts}.md`
-  const fileContent = `---\nstatus: pending\ncreated: ${formatDate(now)}\n---\n\n${newTask.value.trim()}\n`
+  const frontmatter = [
+    'status: pending',
+    `created: ${formatDate(now)}`,
+    newTarget.value ? `target: ${newTarget.value}` : '',
+    autoPublish.value ? 'auto_publish: true' : '',
+  ].filter(Boolean).join('\n')
+  const fileContent = `---\n${frontmatter}\n---\n\n${newTask.value.trim()}\n`
 
   try {
     const { putFile } = useGitHub(getToken())
@@ -324,5 +353,73 @@ ul { list-style: none; }
 .cancel-btn {
   background: #f0f0f0 !important;
   color: #333 !important;
+}
+
+.task-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #333;
+}
+
+.option-row select {
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 14px;
+  background: white;
+  color: #333;
+}
+
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: #ccc;
+  border-radius: 24px;
+  transition: 0.2s;
+  cursor: pointer;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+.toggle input:checked + .toggle-slider {
+  background: #0969da;
+}
+
+.toggle input:checked + .toggle-slider::before {
+  transform: translateX(20px);
 }
 </style>
