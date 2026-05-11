@@ -113,7 +113,8 @@ $result_content
 \`\`\`
 EOF
 
-  git rm "$task_file" 2>&1 | tee -a "$LOG_FILE"
+  # Remove pending file — works for both tracked and untracked files
+  git rm "$task_file" 2>/dev/null || rm -f "$task_file"
   git add "$done_file" 2>&1 | tee -a "$LOG_FILE"
   git commit -m "done: $task_name (exit=$exit_code)" 2>&1 | tee -a "$LOG_FILE"
   git push 2>&1 | tee -a "$LOG_FILE" || log "WARNING: git push 失败，结果已保存本地"
@@ -187,8 +188,8 @@ run_create() {
 cd "$MNOTE_DATA" || { log "ERROR: 无法进入 $MNOTE_DATA"; exit 1; }
 
 log "git pull..."
-# 先 stash 未追踪文件避免 fast-forward 冲突，再 pull
-git stash --include-untracked 2>/dev/null || true
+# 只 stash tracked 文件的改动，不动 untracked 的 pending 任务文件
+git stash 2>/dev/null || true
 git pull --ff-only 2>&1 | tee -a "$LOG_FILE" || log "WARNING: git pull 失败，继续处理本地任务"
 git stash pop 2>/dev/null || true
 
