@@ -162,13 +162,14 @@ run_create() {
 
   local target
   target="$(get_field "$task_file" target)"
-  local no_publish no_cover
-  no_publish="$(get_field "$task_file" no_publish)"
+  local auto_publish no_cover
+  auto_publish="$(get_field "$task_file" auto_publish)"
   no_cover="$(get_field "$task_file" no_cover)"
 
   local args=("--text" "$body")
   [[ -n "$target" ]] && args+=("--target" "$target")
-  [[ "$no_publish" == "true" ]] && args+=("--no-publish")
+  # 只有明确设置 auto_publish: true 才发布，否则 --no-publish
+  [[ "$auto_publish" != "true" ]] && args+=("--no-publish")
   [[ "$no_cover" == "true" ]] && args+=("--no-cover")
 
   log "[create] 调用 monitor.py --text..."
