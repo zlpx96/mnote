@@ -29,6 +29,18 @@ set -euo pipefail
 MNOTE_DATA="${1:?需要传入 mnote-data 仓库路径}"
 WORK_DIR="${2:-$HOME}"
 
+# ── 防并发锁 ───────────────────────────────────────────────────
+LOCK_FILE="/tmp/mnote-watch.lock"
+if [ -f "$LOCK_FILE" ]; then
+  LOCK_PID=$(cat "$LOCK_FILE" 2>/dev/null)
+  if kill -0 "$LOCK_PID" 2>/dev/null; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] 已有实例在运行 (PID $LOCK_PID)，跳过本次" >> "${1:-/tmp}/watch.log" 2>/dev/null || true
+    exit 0
+  fi
+fi
+echo $$ > "$LOCK_FILE"
+trap 'rm -f "$LOCK_FILE"' EXIT
+
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="${LOG_FILE:-$MNOTE_DATA/watch.log}"
 PENDING_DIR="$MNOTE_DATA/tasks/pending"
