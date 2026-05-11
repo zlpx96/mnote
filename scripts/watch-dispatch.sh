@@ -129,17 +129,19 @@ run_rewrite() {
   local url
   url="$(echo "$body" | head -1 | tr -d '[:space:]')"
 
-  local target no_publish no_cover auto_publish
+  local target no_publish no_cover auto_publish with_image
   target="$(get_field "$task_file" target)"
   no_publish="$(get_field "$task_file" no_publish)"
   no_cover="$(get_field "$task_file" no_cover)"
   auto_publish="$(get_field "$task_file" auto_publish)"
+  with_image="$(get_field "$task_file" with_image)"
 
   local args=("--url" "$url")
   [[ -n "$target" ]] && args+=("--target" "$target")
   [[ "$no_cover" == "true" ]] && args+=("--no-cover")
   # auto_publish: true → 直接发布到草稿箱；默认不发布，只生成到 draft
   [[ "$auto_publish" != "true" ]] && args+=("--no-publish")
+  [[ "$with_image" == "true" ]] && args+=("--illustrate")
 
   log "[rewrite] URL: $url, args: ${args[*]}"
 
@@ -162,17 +164,51 @@ run_create() {
 
   local target
   target="$(get_field "$task_file" target)"
-  local auto_publish no_cover
+  local auto_publish no_cover with_image
   auto_publish="$(get_field "$task_file" auto_publish)"
   no_cover="$(get_field "$task_file" no_cover)"
+  with_image="$(get_field "$task_file" with_image)"
 
   local args=("--text" "$body")
   [[ -n "$target" ]] && args+=("--target" "$target")
   # 只有明确设置 auto_publish: true 才发布，否则 --no-publish
   [[ "$auto_publish" != "true" ]] && args+=("--no-publish")
   [[ "$no_cover" == "true" ]] && args+=("--no-cover")
+  [[ "$with_image" == "true" ]] && args+=("--illustrate")
 
   log "[create] 调用 monitor.py --text..."
+
+  local output exit_code=0
+  output="$(
+    cd "$WORK_DIR"
+    "$PYTHON" "$MONITOR_PY" "${args[@]}" 2>&1
+  )" || exit_code=$?
+
+  echo "$output"
+  return $exit_code
+}
+
+# ── file 流程：处理本地 md 文件 ──────────────────────────────
+run_file() {
+  local task_file="$1"
+  local body
+  body="$(get_body "$task_file" | head -1 | tr -d '[:space:]')"
+  local file_path
+  file_path="$(eval echo "$body")"  # expand ~/
+
+  local target auto_publish no_cover with_image
+  target="$(get_field "$task_file" target)"
+  auto_publish="$(get_field "$task_file" auto_publish)"
+  no_cover="$(get_field "$task_file" no_cover)"
+  with_image="$(get_field "$task_file" with_image)"
+
+  local args=("--file" "$file_path")
+  [[ -n "$target" ]] && args+=("--target" "$target")
+  [[ "$no_cover" == "true" ]] && args+=("--no-cover")
+  [[ "$auto_publish" != "true" ]] && args+=("--no-publish")
+  [[ "$with_image" == "true" ]] && args+=("--diagram")
+
+  log "[file] 处理本地文件: $file_path, args: ${args[*]}"
 
   local output exit_code=0
   output="$(
@@ -223,9 +259,14 @@ for TASK_FILE in "${TASKS[@]}"; do
   RESULT=""
   END_TS="$(date '+%Y-%m-%d %H:%M:%S')"
 
-  if is_url "$BODY"; then
+  FIRST_LINE="$(echo "$BODY" | head -1 | tr -d '[:space:]')"
+
+  if [[ "$FIRST_LINE" =~ ^https?:// ]]; then
     log "类型: rewrite（URL 改编）"
     RESULT="$(run_rewrite "$TASK_FILE")" || EXIT_CODE=$?
+  elif [[ "$FIRST_LINE" =~ ^[/~] ]]; then
+    log "类型: file（本地文件）"
+    RESULT="$(run_file "$TASK_FILE")" || EXIT_CODE=$?
   else
     log "类型: create（自由创作）"
     RESULT="$(run_create "$TASK_FILE")" || EXIT_CODE=$?
