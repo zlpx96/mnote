@@ -43,9 +43,9 @@
             </label>
           </div>
           <div class="option-row">
-            <label>不生成封面图</label>
+            <label>生成封面图</label>
             <label class="toggle">
-              <input type="checkbox" v-model="noCover" :disabled="sending" />
+              <input type="checkbox" v-model="withCover" :disabled="sending" />
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -115,7 +115,7 @@ const newTask = ref('')
 const newTarget = ref('')
 const autoPublish = ref(false)
 const withImage = ref(false)
-const noCover = ref(false)
+const withCover = ref(false)
 const sending = ref(false)
 const sendError = ref('')
 
@@ -128,7 +128,7 @@ function closeNew() {
   newTarget.value = ''
   autoPublish.value = false
   withImage.value = false
-  noCover.value = false
+  withCover.value = false
   sendError.value = ''
 }
 
@@ -194,7 +194,7 @@ async function handleSend() {
     newTarget.value ? `target: ${newTarget.value}` : '',
     autoPublish.value ? 'auto_publish: true' : '',
     withImage.value ? 'with_image: true' : '',
-    noCover.value ? 'no_cover: true' : '',
+    withCover.value ? 'with_cover: true' : '',
   ].filter(Boolean).join('\n')
   const fileContent = `---\n${frontmatter}\n---\n\n${newTask.value.trim()}\n`
 

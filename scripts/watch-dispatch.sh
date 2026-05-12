@@ -129,16 +129,16 @@ run_rewrite() {
   local url
   url="$(echo "$body" | head -1 | tr -d '[:space:]')"
 
-  local target no_publish no_cover auto_publish with_image
+  local target no_publish with_cover auto_publish with_image
   target="$(get_field "$task_file" target)"
   no_publish="$(get_field "$task_file" no_publish)"
-  no_cover="$(get_field "$task_file" no_cover)"
+  with_cover="$(get_field "$task_file" with_cover)"
   auto_publish="$(get_field "$task_file" auto_publish)"
   with_image="$(get_field "$task_file" with_image)"
 
   local args=("--url" "$url")
   [[ -n "$target" ]] && args+=("--target" "$target")
-  [[ "$no_cover" == "true" ]] && args+=("--no-cover")
+  [[ "$with_cover" != "true" ]] && args+=("--no-cover")
   # auto_publish: true → 直接发布到草稿箱；默认不发布，只生成到 draft
   [[ "$auto_publish" != "true" ]] && args+=("--no-publish")
   [[ "$with_image" == "true" ]] && args+=("--illustrate")
@@ -164,16 +164,16 @@ run_create() {
 
   local target
   target="$(get_field "$task_file" target)"
-  local auto_publish no_cover with_image
+  local auto_publish with_cover with_image
   auto_publish="$(get_field "$task_file" auto_publish)"
-  no_cover="$(get_field "$task_file" no_cover)"
+  with_cover="$(get_field "$task_file" with_cover)"
   with_image="$(get_field "$task_file" with_image)"
 
   local args=("--text" "$body")
   [[ -n "$target" ]] && args+=("--target" "$target")
   # 只有明确设置 auto_publish: true 才发布，否则 --no-publish
   [[ "$auto_publish" != "true" ]] && args+=("--no-publish")
-  [[ "$no_cover" == "true" ]] && args+=("--no-cover")
+  [[ "$with_cover" != "true" ]] && args+=("--no-cover")
   [[ "$with_image" == "true" ]] && args+=("--illustrate")
 
   log "[create] 调用 monitor.py --text..."
@@ -196,15 +196,15 @@ run_file() {
   local file_path
   file_path="$(eval echo "$body")"  # expand ~/
 
-  local target auto_publish no_cover with_image
+  local target auto_publish with_cover with_image
   target="$(get_field "$task_file" target)"
   auto_publish="$(get_field "$task_file" auto_publish)"
-  no_cover="$(get_field "$task_file" no_cover)"
+  with_cover="$(get_field "$task_file" with_cover)"
   with_image="$(get_field "$task_file" with_image)"
 
   local args=("--file" "$file_path")
   [[ -n "$target" ]] && args+=("--target" "$target")
-  [[ "$no_cover" == "true" ]] && args+=("--no-cover")
+  [[ "$with_cover" != "true" ]] && args+=("--no-cover")
   [[ "$auto_publish" != "true" ]] && args+=("--no-publish")
   [[ "$with_image" == "true" ]] && args+=("--diagram")
 
