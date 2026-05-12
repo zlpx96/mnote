@@ -35,6 +35,20 @@
               <span class="toggle-slider"></span>
             </label>
           </div>
+          <div class="option-row">
+            <label>生成配图</label>
+            <label class="toggle">
+              <input type="checkbox" v-model="withImage" :disabled="sending" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="option-row">
+            <label>不生成封面图</label>
+            <label class="toggle">
+              <input type="checkbox" v-model="noCover" :disabled="sending" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
         </div>
         <p v-if="sendError" class="error">{{ sendError }}</p>
         <div class="modal-actions">
@@ -100,6 +114,8 @@ const showNew = ref(false)
 const newTask = ref('')
 const newTarget = ref('')
 const autoPublish = ref(false)
+const withImage = ref(false)
+const noCover = ref(false)
 const sending = ref(false)
 const sendError = ref('')
 
@@ -111,6 +127,8 @@ function closeNew() {
   newTask.value = ''
   newTarget.value = ''
   autoPublish.value = false
+  withImage.value = false
+  noCover.value = false
   sendError.value = ''
 }
 
@@ -175,6 +193,8 @@ async function handleSend() {
     `created: ${formatDate(now)}`,
     newTarget.value ? `target: ${newTarget.value}` : '',
     autoPublish.value ? 'auto_publish: true' : '',
+    withImage.value ? 'with_image: true' : '',
+    noCover.value ? 'no_cover: true' : '',
   ].filter(Boolean).join('\n')
   const fileContent = `---\n${frontmatter}\n---\n\n${newTask.value.trim()}\n`
 
