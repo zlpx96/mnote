@@ -147,7 +147,7 @@ run_rewrite() {
 
   local output exit_code=0
   output="$(
-    cd "$WORK_DIR"
+    cd "$(dirname "$MONITOR_PY")"
     "$PYTHON" "$MONITOR_PY" "${args[@]}" 2>&1
   )" || exit_code=$?
 
@@ -180,7 +180,7 @@ run_create() {
 
   local output exit_code=0
   output="$(
-    cd "$WORK_DIR"
+    cd "$(dirname "$MONITOR_PY")"
     "$PYTHON" "$MONITOR_PY" "${args[@]}" 2>&1
   )" || exit_code=$?
 
@@ -212,7 +212,7 @@ run_file() {
 
   local output exit_code=0
   output="$(
-    cd "$WORK_DIR"
+    cd "$(dirname "$MONITOR_PY")"
     "$PYTHON" "$MONITOR_PY" "${args[@]}" 2>&1
   )" || exit_code=$?
 
