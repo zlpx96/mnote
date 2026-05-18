@@ -39,14 +39,15 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { marked } from 'marked'
 import { useStorage } from '../composables/useStorage.js'
-import { useGitHub } from '../composables/useGitHub.js'
+import { useGitProvider } from '../composables/useGitProvider.js'
 
 const NOTE_OWNER = 'zlpx96'
 const NOTE_REPO = 'mnote-data'
 
 const router = useRouter()
 const route = useRoute()
-const { getToken, isFavorite, toggleFavorite } = useStorage()
+const storage = useStorage()
+const { isFavorite, toggleFavorite } = storage
 
 // 配置 marked：禁止渲染原始 HTML 标签（防 XSS）
 const renderer = new marked.Renderer()
@@ -93,7 +94,7 @@ function getNotePath() {
 
 async function loadNote() {
   try {
-    const { getFileContent } = useGitHub(getToken())
+    const { getFileContent } = useGitProvider(storage.getPlatform(), storage.getToken())
     const text = await getFileContent(NOTE_OWNER, NOTE_REPO, getNotePath())
     noteContent.value = text
     noteSaved.value = text
@@ -106,7 +107,7 @@ async function saveNote() {
   noteSaving.value = true
   noteStatus.value = ''
   try {
-    const { putFile, getFileSha } = useGitHub(getToken())
+    const { putFile, getFileSha } = useGitProvider(storage.getPlatform(), storage.getToken())
     const sha = await getFileSha(NOTE_OWNER, NOTE_REPO, getNotePath())
     await putFile(NOTE_OWNER, NOTE_REPO, getNotePath(), noteContent.value, sha)
     noteSaved.value = noteContent.value
@@ -130,15 +131,12 @@ const fileName = computed(() => {
 
 const rendered = computed(() => marked.parse(content.value, { renderer }))
 
-const CACHE_PREFIX = 'mnote_cache_'
-const SCROLL_PREFIX = 'mnote_scroll_'
-
 function getCacheKey() {
-  return `${CACHE_PREFIX}${route.params.owner}/${route.params.repo}/${route.params.path}`
+  return storage.getCacheKey(`${route.params.owner}/${route.params.repo}/${route.params.path}`)
 }
 
 function getScrollKey() {
-  return `${SCROLL_PREFIX}${route.params.owner}/${route.params.repo}/${route.params.path}`
+  return storage.getScrollKey(`${route.params.owner}/${route.params.repo}/${route.params.path}`)
 }
 
 function saveScroll() {
@@ -165,7 +163,7 @@ onMounted(async () => {
   loading.value = !cached
   error.value = ''
   try {
-    const { getFileContent } = useGitHub(getToken())
+    const { getFileContent } = useGitProvider(storage.getPlatform(), storage.getToken())
     const text = await getFileContent(route.params.owner, route.params.repo, route.params.path)
     content.value = text
     localStorage.setItem(getCacheKey(), text)
