@@ -7,9 +7,13 @@ function reposKey(platform) { return `mnote_repos_${platform}` }
 function cacheKey(platform, path) { return `mnote_cache_${platform}_${path}` }
 function scrollKey(platform, path) { return `mnote_scroll_${platform}_${path}` }
 
+let _migrated = false
+
 export function useStorage() {
   // Migrate legacy keys on first call
   function migrate() {
+    if (_migrated) return
+    _migrated = true
     const oldToken = localStorage.getItem('mnote_token')
     if (oldToken) {
       localStorage.setItem(tokenKey('github'), oldToken)
