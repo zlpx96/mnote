@@ -3,6 +3,16 @@
     <header class="page-header">
       <h1>我的仓库</h1>
       <div class="header-actions">
+        <div class="platform-switch">
+          <button
+            :class="['plat-btn', platform === 'github' && 'active']"
+            @click="switchPlatform('github')"
+          >GitHub</button>
+          <button
+            :class="['plat-btn', platform === 'gitee' && 'active']"
+            @click="switchPlatform('gitee')"
+          >Gitee</button>
+        </div>
         <button class="icon-btn" @click="router.push('/tasks')" title="任务">✦</button>
         <button class="icon-btn" @click="showFavorites = !showFavorites" title="收藏">★</button>
         <button class="icon-btn" @click="showSearch = true">＋</button>
@@ -76,11 +86,12 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStorage } from '../composables/useStorage.js'
-import { useGitHub } from '../composables/useGitHub.js'
+import { useGitProvider } from '../composables/useGitProvider.js'
 
 const router = useRouter()
-const { getToken, clearToken, getRepos, addRepo, removeRepo, getFavorites } = useStorage()
+const storage = useStorage()
 
+const platform = ref(storage.getPlatform())
 const repos = ref([])
 const showSearch = ref(false)
 const showFavorites = ref(false)
@@ -90,19 +101,32 @@ const searchResults = ref([])
 const searching = ref(false)
 const searchError = ref('')
 
-onMounted(() => {
-  repos.value = getRepos()
-  favorites.value = getFavorites()
-})
+function loadData() {
+  platform.value = storage.getPlatform()
+  repos.value = storage.getRepos()
+  favorites.value = storage.getFavorites()
+}
+
+onMounted(loadData)
+
+function switchPlatform(p) {
+  const token = storage.getToken(p)
+  if (!token) {
+    router.push('/setup')
+    return
+  }
+  storage.setPlatform(p)
+  loadData()
+}
 
 function handleRemove(fullName) {
-  removeRepo(fullName)
-  repos.value = getRepos()
+  storage.removeRepo(fullName)
+  repos.value = storage.getRepos()
 }
 
 function handleReset() {
   if (confirm('重置 Token 后需要重新登录，确认吗？')) {
-    clearToken()
+    storage.clearToken()
     router.push('/setup')
   }
 }
@@ -112,11 +136,11 @@ async function handleSearch() {
   searchError.value = ''
   searchResults.value = []
   try {
-    const { searchRepos } = useGitHub(getToken())
+    const { searchRepos } = useGitProvider(platform.value, storage.getToken())
     searchResults.value = await searchRepos(searchQuery.value.trim())
   } catch (e) {
     if (e.message === 'UNAUTHORIZED') {
-      clearToken()
+      storage.clearToken()
       router.push('/setup')
     } else {
       searchError.value = '搜索失败，请重试'
@@ -127,8 +151,8 @@ async function handleSearch() {
 }
 
 function handleAdd(repo) {
-  addRepo(repo)
-  repos.value = getRepos()
+  storage.addRepo(repo)
+  repos.value = storage.getRepos()
   showSearch.value = false
   searchQuery.value = ''
   searchResults.value = []
@@ -355,5 +379,27 @@ function handleAdd(repo) {
   padding: 2px 6px;
   border-radius: 4px;
   color: #666;
+}
+
+.platform-switch {
+  display: flex;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.plat-btn {
+  padding: 4px 10px;
+  border: none;
+  background: #f6f8fa;
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+}
+
+.plat-btn.active {
+  background: #0969da;
+  color: white;
 }
 </style>
