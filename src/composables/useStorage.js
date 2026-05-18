@@ -1,48 +1,102 @@
 // src/composables/useStorage.js
-const TOKEN_KEY = 'mnote_token'
-const REPOS_KEY = 'mnote_repos'
+const PLATFORM_KEY = 'mnote_platform'
 const FAVORITES_KEY = 'mnote_favorites'
 
+function tokenKey(platform) { return `mnote_token_${platform}` }
+function reposKey(platform) { return `mnote_repos_${platform}` }
+function cacheKey(platform, path) { return `mnote_cache_${platform}_${path}` }
+function scrollKey(platform, path) { return `mnote_scroll_${platform}_${path}` }
+
 export function useStorage() {
-  function getToken() {
-    return localStorage.getItem(TOKEN_KEY) || null
-  }
-
-  function setToken(token) {
-    localStorage.setItem(TOKEN_KEY, token)
-  }
-
-  function clearToken() {
-    localStorage.removeItem(TOKEN_KEY)
-    // 清除文件缓存和滚动记录，防止旧用户内容残留
+  // Migrate legacy keys on first call
+  function migrate() {
+    const oldToken = localStorage.getItem('mnote_token')
+    if (oldToken) {
+      localStorage.setItem(tokenKey('github'), oldToken)
+      localStorage.removeItem('mnote_token')
+    }
+    const oldRepos = localStorage.getItem('mnote_repos')
+    if (oldRepos) {
+      localStorage.setItem(reposKey('github'), oldRepos)
+      localStorage.removeItem('mnote_repos')
+    }
+    // Migrate old cache keys (no platform prefix) to github prefix
     Object.keys(localStorage)
-      .filter(k => k.startsWith('mnote_cache_') || k.startsWith('mnote_scroll_'))
+      .filter(k => k.startsWith('mnote_cache_') && !k.startsWith('mnote_cache_github_') && !k.startsWith('mnote_cache_gitee_'))
+      .forEach(k => {
+        const val = localStorage.getItem(k)
+        const newKey = k.replace('mnote_cache_', 'mnote_cache_github_')
+        localStorage.setItem(newKey, val)
+        localStorage.removeItem(k)
+      })
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('mnote_scroll_') && !k.startsWith('mnote_scroll_github_') && !k.startsWith('mnote_scroll_gitee_'))
+      .forEach(k => {
+        const val = localStorage.getItem(k)
+        const newKey = k.replace('mnote_scroll_', 'mnote_scroll_github_')
+        localStorage.setItem(newKey, val)
+        localStorage.removeItem(k)
+      })
+  }
+  migrate()
+
+  function getPlatform() {
+    return localStorage.getItem(PLATFORM_KEY) || 'github'
+  }
+
+  function setPlatform(platform) {
+    localStorage.setItem(PLATFORM_KEY, platform)
+  }
+
+  function getToken(platform) {
+    return localStorage.getItem(tokenKey(platform || getPlatform())) || null
+  }
+
+  function setToken(token, platform) {
+    localStorage.setItem(tokenKey(platform || getPlatform()), token)
+  }
+
+  function clearToken(platform) {
+    const p = platform || getPlatform()
+    localStorage.removeItem(tokenKey(p))
+    Object.keys(localStorage)
+      .filter(k => k.startsWith(`mnote_cache_${p}_`) || k.startsWith(`mnote_scroll_${p}_`))
       .forEach(k => localStorage.removeItem(k))
   }
 
-  function getRepos() {
+  function getRepos(platform) {
     try {
-      return JSON.parse(localStorage.getItem(REPOS_KEY)) || []
+      return JSON.parse(localStorage.getItem(reposKey(platform || getPlatform()))) || []
     } catch {
       return []
     }
   }
 
-  function saveRepos(repos) {
-    localStorage.setItem(REPOS_KEY, JSON.stringify(repos))
+  function saveRepos(repos, platform) {
+    localStorage.setItem(reposKey(platform || getPlatform()), JSON.stringify(repos))
   }
 
-  function addRepo(repo) {
-    const repos = getRepos()
+  function addRepo(repo, platform) {
+    const p = platform || getPlatform()
+    const repos = getRepos(p)
     if (!repos.find(r => r.full_name === repo.full_name)) {
       repos.push(repo)
-      saveRepos(repos)
+      saveRepos(repos, p)
     }
   }
 
-  function removeRepo(fullName) {
-    const repos = getRepos().filter(r => r.full_name !== fullName)
-    saveRepos(repos)
+  function removeRepo(fullName, platform) {
+    const p = platform || getPlatform()
+    const repos = getRepos(p).filter(r => r.full_name !== fullName)
+    saveRepos(repos, p)
+  }
+
+  function getCacheKey(path) {
+    return cacheKey(getPlatform(), path)
+  }
+
+  function getScrollKey(path) {
+    return scrollKey(getPlatform(), path)
   }
 
   function getFavorites() {
@@ -68,5 +122,11 @@ export function useStorage() {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favs))
   }
 
-  return { getToken, setToken, clearToken, getRepos, addRepo, removeRepo, getFavorites, isFavorite, toggleFavorite }
+  return {
+    getPlatform, setPlatform,
+    getToken, setToken, clearToken,
+    getRepos, addRepo, removeRepo,
+    getCacheKey, getScrollKey,
+    getFavorites, isFavorite, toggleFavorite,
+  }
 }
