@@ -9,6 +9,16 @@
           <span @click="navigateTo(pathSegments.slice(0, i+1).join('/'))" class="crumb">{{ seg }}</span>
         </template>
       </div>
+      <input
+        ref="uploadInput"
+        type="file"
+        accept="image/*"
+        style="display:none"
+        @change="handleUpload"
+      />
+      <button class="upload-btn" @click="triggerUpload" :disabled="uploading" title="上传图片">
+        {{ uploading ? '…' : '↑' }}
+      </button>
       <button class="new-btn" @click="showNew = true">＋</button>
     </header>
 
@@ -39,6 +49,7 @@
       </div>
     </div>
 
+    <p v-if="uploadError" class="upload-error">{{ uploadError }}</p>
     <div v-if="loading" class="loading">加载中...</div>
     <div v-else-if="error" class="error-msg">{{ error }}</div>
     <div v-else-if="items.length === 0" class="empty">此目录为空</div>
@@ -62,7 +73,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useStorage } from '../composables/useStorage.js'
-import { useGitHub } from '../composables/useGitHub.js'
+import { useGitProvider } from '../composables/useGitProvider.js'
 
 const router = useRouter()
 
@@ -74,7 +85,7 @@ function handleBack() {
   }
 }
 const route = useRoute()
-const { getToken } = useStorage()
+const storage = useStorage()
 
 const items = ref([])
 const showNew = ref(false)
@@ -82,6 +93,65 @@ const newFileName = ref('')
 const newContent = ref('')
 const newSaving = ref(false)
 const newError = ref('')
+
+// Image upload state
+const uploadInput = ref(null)
+const uploading = ref(false)
+const uploadError = ref('')
+
+function triggerUpload() {
+  uploadError.value = ''
+  uploadInput.value.click()
+}
+
+async function handleUpload(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  // Reset input so same file can be re-selected
+  event.target.value = ''
+
+  const platform = storage.getPlatform()
+  if (platform === 'gitee' && file.size > 1024 * 1024) {
+    uploadError.value = 'Gitee 限制文件不能超过 1MB'
+    return
+  }
+  if (file.size > 50 * 1024 * 1024) {
+    uploadError.value = '文件不能超过 50MB'
+    return
+  }
+
+  uploading.value = true
+  uploadError.value = ''
+  try {
+    const base64 = await fileToBase64(file)
+    const filePath = currentPath.value ? `${currentPath.value}/${file.name}` : file.name
+    const { getFileSha, uploadFile } = useGitProvider(platform, storage.getToken())
+    const sha = await getFileSha(route.params.owner, route.params.repo, filePath)
+    await uploadFile(route.params.owner, route.params.repo, filePath, base64, sha)
+    await loadContents(currentPath.value)
+  } catch (e) {
+    if (e.message === 'UNAUTHORIZED') {
+      router.push('/setup')
+    } else {
+      uploadError.value = '上传失败：' + e.message
+    }
+  } finally {
+    uploading.value = false
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      // result is "data:image/png;base64,XXXX" — strip the prefix
+      const base64 = reader.result.split(',')[1]
+      resolve(base64)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
 function closeNew() {
   showNew.value = false
@@ -98,7 +168,7 @@ async function handleCreate() {
   newSaving.value = true
   newError.value = ''
   try {
-    const { putFile } = useGitHub(getToken())
+    const { putFile } = useGitProvider(storage.getPlatform(), storage.getToken())
     await putFile(route.params.owner, route.params.repo, filePath, newContent.value)
     closeNew()
     await loadContents(currentPath.value)
@@ -132,15 +202,20 @@ async function loadContents(path) {
   error.value = ''
   items.value = []
   try {
-    const { getContents } = useGitHub(getToken())
+    const { getContents } = useGitProvider(storage.getPlatform(), storage.getToken())
     const data = await getContents(route.params.owner, route.params.repo, path)
     items.value = Array.isArray(data) ? data : [data]
   } catch (e) {
     if (e.message === 'UNAUTHORIZED') {
       router.push('/setup')
     } else if (e.message.startsWith('RATE_LIMIT:')) {
-      const reset = new Date(parseInt(e.message.split(':')[1]) * 1000)
-      error.value = `API 限流，请在 ${reset.toLocaleTimeString()} 后重试`
+      const ts = e.message.split(':')[1]
+      if (ts === '0') {
+        error.value = '请求过于频繁，请稍后再试'
+      } else {
+        const reset = new Date(parseInt(ts) * 1000)
+        error.value = `API 限流，请在 ${reset.toLocaleTimeString()} 后重试`
+      }
     } else {
       error.value = '加载失败：' + e.message
     }
@@ -362,5 +437,25 @@ onMounted(() => loadContents(''))
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.upload-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #0969da;
+  padding: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.upload-btn:disabled {
+  opacity: 0.5;
+}
+
+.upload-error {
+  color: #d1242f;
+  font-size: 13px;
+  padding: 8px 16px 0;
 }
 </style>
