@@ -99,13 +99,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStorage } from '../composables/useStorage.js'
-import { useGitHub } from '../composables/useGitHub.js'
+import { useGitProvider } from '../composables/useGitProvider.js'
 
 const NOTE_OWNER = 'zlpx96'
 const NOTE_REPO = 'mnote-data'
 
 const router = useRouter()
-const { getToken } = useStorage()
+const storage = useStorage()
 
 const tasks = ref([])
 const loading = ref(false)
@@ -141,7 +141,7 @@ async function loadTasks() {
   loadError.value = ''
   tasks.value = []
   try {
-    const { getContents, getFileContent } = useGitHub(getToken())
+    const { getContents, getFileContent } = useGitProvider(storage.getPlatform(), storage.getToken())
 
     // 读 pending 和 done 两个目录
     const dirs = ['tasks/pending', 'tasks/done']
@@ -199,7 +199,7 @@ async function handleSend() {
   const fileContent = `---\n${frontmatter}\n---\n\n${newTask.value.trim()}\n`
 
   try {
-    const { putFile } = useGitHub(getToken())
+    const { putFile } = useGitProvider(storage.getPlatform(), storage.getToken())
     await putFile(NOTE_OWNER, NOTE_REPO, filePath, fileContent)
     closeNew()
     await loadTasks()
