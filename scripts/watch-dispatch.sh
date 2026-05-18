@@ -220,6 +220,34 @@ run_file() {
   return $exit_code
 }
 
+# ── mini 流程：生成竖图并发布为微信图文 ──────────────────────
+run_mini() {
+  local task_file="$1"
+  local body
+  body="$(get_body "$task_file" | head -1 | tr -d '[:space:]')"
+  local file_path
+  file_path="$(eval echo "$body")"  # expand ~/
+
+  local target auto_publish
+  target="$(get_field "$task_file" target)"
+  auto_publish="$(get_field "$task_file" auto_publish)"
+
+  local args=("--mini" "$file_path")
+  [[ -n "$target" ]] && args+=("--target" "$target")
+  [[ "$auto_publish" != "true" ]] && args+=("--no-publish")
+
+  log "[mini] 处理图文文件: $file_path"
+
+  local output exit_code=0
+  output="$(
+    cd "$(dirname "$MONITOR_PY")"
+    "$PYTHON" "$MONITOR_PY" "${args[@]}" 2>&1
+  )" || exit_code=$?
+
+  echo "$output"
+  return $exit_code
+}
+
 # ── 主流程 ────────────────────────────────────────────────────
 
 cd "$MNOTE_DATA" || { log "ERROR: 无法进入 $MNOTE_DATA"; exit 1; }
@@ -261,9 +289,14 @@ for TASK_FILE in "${TASKS[@]}"; do
 
   FIRST_LINE="$(echo "$BODY" | head -1 | tr -d '[:space:]')"
 
+  TASK_TYPE="$(get_field "$TASK_FILE" task_type)"
+
   if [[ "$FIRST_LINE" =~ ^https?:// ]]; then
     log "类型: rewrite（URL 改编）"
     RESULT="$(run_rewrite "$TASK_FILE")" || EXIT_CODE=$?
+  elif [[ "$TASK_TYPE" == "mini" || "$FIRST_LINE" =~ ^[/~].*mini ]]; then
+    log "类型: mini（图文）"
+    RESULT="$(run_mini "$TASK_FILE")" || EXIT_CODE=$?
   elif [[ "$FIRST_LINE" =~ ^[/~] ]]; then
     log "类型: file（本地文件）"
     RESULT="$(run_file "$TASK_FILE")" || EXIT_CODE=$?
