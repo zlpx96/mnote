@@ -35,8 +35,8 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  const { getToken } = useStorage()
-  if (to.meta.requiresAuth && !getToken()) {
+  const storage = useStorage()
+  if (to.meta.requiresAuth && !storage.getToken()) {
     return '/setup'
   }
 })
