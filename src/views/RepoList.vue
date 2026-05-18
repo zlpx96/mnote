@@ -136,7 +136,7 @@ async function handleSearch() {
   searchError.value = ''
   searchResults.value = []
   try {
-    const { searchRepos } = useGitProvider(platform.value, storage.getToken())
+    const { searchRepos } = useGitProvider(platform.value, storage.getToken(platform.value))
     searchResults.value = await searchRepos(searchQuery.value.trim())
   } catch (e) {
     if (e.message === 'UNAUTHORIZED') {
