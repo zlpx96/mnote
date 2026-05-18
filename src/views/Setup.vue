@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStorage } from '../composables/useStorage.js'
 import { useGitProvider } from '../composables/useGitProvider.js'
@@ -84,8 +84,8 @@ const giteeToken = ref(storage.getToken('gitee') || '')
 const loading = ref(false)
 const error = ref('')
 
-const githubConfigured = computed(() => !!storage.getToken('github'))
-const giteeConfigured = computed(() => !!storage.getToken('gitee'))
+const githubConfigured = ref(!!storage.getToken('github'))
+const giteeConfigured = ref(!!storage.getToken('gitee'))
 
 async function handleSave(platform) {
   const tok = platform === 'github' ? githubToken.value.trim() : giteeToken.value.trim()
@@ -95,9 +95,8 @@ async function handleSave(platform) {
     const { validateToken } = useGitProvider(platform, tok)
     await validateToken()
     storage.setToken(tok, platform)
-    // Trigger computed reactivity by re-reading token
-    if (platform === 'github') githubToken.value = tok
-    else giteeToken.value = tok
+    if (platform === 'github') githubConfigured.value = true
+    else giteeConfigured.value = true
   } catch {
     error.value = 'Token 无效，请检查后重试'
   } finally {
