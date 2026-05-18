@@ -108,6 +108,15 @@ export function useGitProvider(platform, token) {
       body: JSON.stringify(body),
     })
     if (res.status === 401) throw new Error('UNAUTHORIZED')
+    if (res.status === 403 || res.status === 429) {
+      const data = await res.clone().json().catch(() => ({}))
+      const msg = data.message || ''
+      if (platform === 'github' && msg.includes('rate limit')) {
+        const reset = res.headers.get('X-RateLimit-Reset')
+        throw new Error(`RATE_LIMIT:${reset}`)
+      }
+      throw new Error('RATE_LIMIT:0')
+    }
     if (!res.ok) throw new Error(`Failed to write file: ${res.status}`)
     return await res.json()
   }
