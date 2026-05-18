@@ -2,58 +2,113 @@
   <div class="setup-page">
     <div class="setup-card">
       <h1>mnote</h1>
-      <p class="subtitle">输入 GitHub Personal Access Token 开始使用</p>
 
-      <div class="form-group">
-        <label for="token">Personal Access Token</label>
-        <input
-          id="token"
-          v-model="tokenInput"
-          type="password"
-          placeholder="ghp_xxxxxxxxxxxx"
-          :disabled="loading"
-        />
-        <p class="hint">
-          需要 <code>repo</code> 权限。
-          <a href="https://github.com/settings/tokens/new" target="_blank">生成 Token</a>
-        </p>
+      <div class="platform-tabs">
+        <button
+          :class="['tab', activeTab === 'github' && 'active']"
+          @click="activeTab = 'github'"
+        >
+          GitHub <span v-if="githubConfigured" class="check">✓</span>
+        </button>
+        <button
+          :class="['tab', activeTab === 'gitee' && 'active']"
+          @click="activeTab = 'gitee'"
+        >
+          Gitee <span v-if="giteeConfigured" class="check">✓</span>
+        </button>
       </div>
 
-      <p v-if="error" class="error">{{ error }}</p>
+      <div v-if="activeTab === 'github'">
+        <p class="subtitle">输入 GitHub Personal Access Token</p>
+        <div class="form-group">
+          <input
+            v-model="githubToken"
+            type="password"
+            placeholder="ghp_xxxxxxxxxxxx"
+            :disabled="loading"
+          />
+          <p class="hint">
+            需要 <code>repo</code> 权限。
+            <a href="https://github.com/settings/tokens/new" target="_blank">生成 Token</a>
+          </p>
+        </div>
+        <p v-if="error && activeTab === 'github'" class="error">{{ error }}</p>
+        <button @click="handleSave('github')" :disabled="loading || !githubToken.trim()">
+          {{ loading ? '验证中...' : '保存 GitHub Token' }}
+        </button>
+      </div>
 
-      <button @click="handleSubmit" :disabled="loading || !tokenInput.trim()">
-        {{ loading ? '验证中...' : '开始使用' }}
+      <div v-if="activeTab === 'gitee'">
+        <p class="subtitle">输入 Gitee 私人令牌</p>
+        <div class="form-group">
+          <input
+            v-model="giteeToken"
+            type="password"
+            placeholder="xxxxxxxxxxxxxxxxxxxx"
+            :disabled="loading"
+          />
+          <p class="hint">
+            需要 projects、pull_requests 权限。
+            <a href="https://gitee.com/profile/personal_access_tokens/new" target="_blank">生成令牌</a>
+          </p>
+        </div>
+        <p v-if="error && activeTab === 'gitee'" class="error">{{ error }}</p>
+        <button @click="handleSave('gitee')" :disabled="loading || !giteeToken.trim()">
+          {{ loading ? '验证中...' : '保存 Gitee Token' }}
+        </button>
+      </div>
+
+      <button
+        class="start-btn"
+        :disabled="!githubConfigured && !giteeConfigured"
+        @click="handleStart"
+      >
+        开始使用
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStorage } from '../composables/useStorage.js'
-import { useGitHub } from '../composables/useGitHub.js'
+import { useGitProvider } from '../composables/useGitProvider.js'
 
 const router = useRouter()
-const { setToken } = useStorage()
+const storage = useStorage()
 
-const tokenInput = ref('')
+const activeTab = ref('github')
+const githubToken = ref(storage.getToken('github') || '')
+const giteeToken = ref(storage.getToken('gitee') || '')
 const loading = ref(false)
 const error = ref('')
 
-async function handleSubmit() {
+const githubConfigured = computed(() => !!storage.getToken('github'))
+const giteeConfigured = computed(() => !!storage.getToken('gitee'))
+
+async function handleSave(platform) {
+  const tok = platform === 'github' ? githubToken.value.trim() : giteeToken.value.trim()
   loading.value = true
   error.value = ''
   try {
-    const { validateToken } = useGitHub(tokenInput.value.trim())
+    const { validateToken } = useGitProvider(platform, tok)
     await validateToken()
-    setToken(tokenInput.value.trim())
-    router.push('/')
+    storage.setToken(tok, platform)
+    // Trigger computed reactivity by re-reading token
+    if (platform === 'github') githubToken.value = tok
+    else giteeToken.value = tok
   } catch {
     error.value = 'Token 无效，请检查后重试'
   } finally {
     loading.value = false
   }
+}
+
+function handleStart() {
+  const platform = githubConfigured.value ? 'github' : 'gitee'
+  storage.setPlatform(platform)
+  router.push('/')
 }
 </script>
 
@@ -73,29 +128,55 @@ async function handleSubmit() {
   width: 100%;
   max-width: 400px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 h1 {
   font-size: 28px;
   font-weight: 700;
-  margin-bottom: 8px;
+}
+
+.platform-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tab {
+  flex: 1;
+  padding: 9px;
+  border: none;
+  background: #f6f8fa;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: white;
+  color: #0969da;
+  font-weight: 600;
+}
+
+.check {
+  color: #1a7f37;
+  margin-left: 4px;
 }
 
 .subtitle {
   color: #666;
-  margin-bottom: 24px;
   font-size: 14px;
 }
 
 .form-group {
-  margin-bottom: 16px;
-}
-
-label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 input {
@@ -115,13 +196,11 @@ input:focus {
 .hint {
   font-size: 12px;
   color: #666;
-  margin-top: 6px;
 }
 
 .error {
   color: #d1242f;
   font-size: 14px;
-  margin-bottom: 12px;
 }
 
 button {
@@ -131,11 +210,20 @@ button {
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
 }
 
 button:disabled {
+  opacity: 0.5;
+}
+
+.start-btn {
+  background: #1a7f37;
+  margin-top: 8px;
+}
+
+.start-btn:disabled {
   opacity: 0.5;
 }
 </style>
