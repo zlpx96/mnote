@@ -52,7 +52,7 @@ export function useGitProvider(platform, token) {
   async function searchRepos(query) {
     let url
     if (platform === 'gitee') {
-      url = `${BASE}/repos/search?q=${encodeURIComponent(query)}&limit=10`
+      url = `${BASE}/repos/search?q=${encodeURIComponent(query)}&per_page=10&access_token=${token}`
     } else {
       url = `${BASE}/search/repositories?q=${encodeURIComponent(query)}&per_page=10`
     }
