@@ -15,10 +15,12 @@
         </div>
         <button class="icon-btn" @click="router.push('/tasks')" title="任务">✦</button>
         <button class="icon-btn" @click="showFavorites = !showFavorites" title="收藏">★</button>
-        <button class="icon-btn" @click="showSearch = true">＋</button>
+        <button class="icon-btn" @click="handleAddBtn" :disabled="addingAll">{{ addingAll ? '…' : '＋' }}</button>
         <button class="icon-btn" @click="handleReset" title="重置 Token">⚙</button>
       </div>
     </header>
+
+    <p v-if="addAllError" class="add-all-error">{{ addAllError }}</p>
 
     <!-- 收藏面板 -->
     <div v-if="showFavorites" class="favorites-panel">
@@ -39,7 +41,7 @@
 
     <div v-if="repos.length === 0" class="empty">
       <p>还没有添加仓库</p>
-      <button @click="showSearch = true">添加仓库</button>
+      <button @click="handleAddBtn" :disabled="addingAll">{{ addingAll ? '导入中...' : '添加仓库' }}</button>
     </div>
 
     <ul v-else class="repo-list">
@@ -100,6 +102,8 @@ const searchQuery = ref('')
 const searchResults = ref([])
 const searching = ref(false)
 const searchError = ref('')
+const addingAll = ref(false)
+const addAllError = ref('')
 
 function loadData() {
   platform.value = storage.getPlatform()
@@ -128,6 +132,34 @@ function handleReset() {
   if (confirm('重置 Token 后需要重新登录，确认吗？')) {
     storage.clearToken()
     router.push('/setup')
+  }
+}
+
+function handleAddBtn() {
+  if (platform.value === 'gitee') {
+    handleAddAll()
+  } else {
+    showSearch.value = true
+  }
+}
+
+async function handleAddAll() {
+  addingAll.value = true
+  addAllError.value = ''
+  try {
+    const { getUserRepos } = useGitProvider(platform.value, storage.getToken(platform.value))
+    const all = await getUserRepos()
+    all.forEach(r => storage.addRepo(r))
+    repos.value = storage.getRepos()
+  } catch (e) {
+    if (e.message === 'UNAUTHORIZED') {
+      storage.clearToken()
+      router.push('/setup')
+    } else {
+      addAllError.value = '获取仓库失败：' + e.message
+    }
+  } finally {
+    addingAll.value = false
   }
 }
 
@@ -379,6 +411,12 @@ function handleAdd(repo) {
   padding: 2px 6px;
   border-radius: 4px;
   color: #666;
+}
+
+.add-all-error {
+  color: #d1242f;
+  font-size: 13px;
+  padding: 8px 16px 0;
 }
 
 .platform-switch {

@@ -132,5 +132,15 @@ export function useGitProvider(platform, token) {
     return _writeFile(owner, repo, path, base64, sha, message)
   }
 
-  return { validateToken, searchRepos, getContents, getFileContent, putFile, getFileSha, uploadFile }
+  async function getUserRepos() {
+    const url = platform === 'gitee'
+      ? `${BASE}/user/repos?access_token=${token}&per_page=100&type=all`
+      : `${BASE}/user/repos?per_page=100`
+    const res = await request(url)
+    if (!res.ok) throw new Error(`Failed to get user repos: ${res.status}`)
+    const data = await res.json()
+    return data.map(r => ({ full_name: r.full_name, description: r.description, private: r.private }))
+  }
+
+  return { validateToken, searchRepos, getUserRepos, getContents, getFileContent, putFile, getFileSha, uploadFile }
 }
