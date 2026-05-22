@@ -73,6 +73,8 @@ export function useGitProvider(platform, token) {
       ? `${BASE}/repos/${owner}/${repo}/contents/${path}?access_token=${token}`
       : `${BASE}/repos/${owner}/${repo}/contents/${path}`
     const res = await request(url)
+    // Gitee returns 404 for empty repos; treat root 404 as empty directory
+    if (res.status === 404 && path === '') return []
     if (!res.ok) throw new Error(`Failed to get contents: ${res.status}`)
     return await res.json()
   }
