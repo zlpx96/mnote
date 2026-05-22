@@ -99,11 +99,12 @@ export function useGitProvider(platform, token) {
   async function _writeFile(owner, repo, path, base64Content, sha, message) {
     const body = { message, content: base64Content }
     if (sha) body.sha = sha
-    // Gitee requires access_token in body for PUT
     if (platform === 'gitee') body.access_token = token
     const url = `${BASE}/repos/${owner}/${repo}/contents/${path}`
+    // Gitee: POST to create (no sha), PUT to update (with sha); GitHub: always PUT
+    const method = (platform === 'gitee' && !sha) ? 'POST' : 'PUT'
     const res = await fetch(url, {
-      method: 'PUT',
+      method,
       headers,
       body: JSON.stringify(body),
     })
