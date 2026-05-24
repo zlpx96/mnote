@@ -44,7 +44,7 @@ trap 'rm -f "$LOCK_FILE"' EXIT
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="${LOG_FILE:-$MNOTE_DATA/watch.log}"
 PENDING_DIR="$MNOTE_DATA/tasks/pending"
-DONE_DIR="$MNOTE_DATA/tasks/done"
+DONE_DIR="$MNOTE_DATA/tasks/done/$(date +%Y)"
 
 MONITOR_PY="${MONITOR_PY:-$HOME/gitnotes/article/engine/monitor.py}"
 ARTICLE_DIR="${ARTICLE_DIR:-$HOME/gitnotes/article}"
