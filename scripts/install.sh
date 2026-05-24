@@ -8,7 +8,7 @@ set -euo pipefail
 MNOTE_DATA="${1:?用法: $0 <mnote-data路径> [工作目录]}"
 WORK_DIR="${2:-$HOME}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-WATCH_SH="$SCRIPT_DIR/watch.sh"
+WATCH_SH="$SCRIPT_DIR/watch-dispatch.sh"
 PLIST_SRC="$SCRIPT_DIR/com.mnote.watch.plist"
 PLIST_DST="$HOME/Library/LaunchAgents/com.mnote.watch.plist"
 LABEL="com.mnote.watch"
@@ -48,7 +48,7 @@ launchctl unload "$PLIST_DST" 2>/dev/null || true
 launchctl load -w "$PLIST_DST"
 
 echo "已启动 launchd job: $LABEL"
-echo "每 2 分钟检查一次新任务"
+echo "每 5 分钟检查一次新任务"
 echo ""
 echo "查看日志：tail -f $MNOTE_DATA/watch.log"
 echo "手动触发：launchctl start $LABEL"

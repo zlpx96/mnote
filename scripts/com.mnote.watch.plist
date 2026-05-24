@@ -6,7 +6,7 @@
   <!-- 修改下面三个路径后再安装 -->
   <!-- MNOTE_DATA_PATH: mnote-data 本地仓库路径 -->
   <!-- WORK_DIR_PATH:   Claude Code 执行任务时的工作目录 -->
-  <!-- WATCH_SH_PATH:   watch.sh 的完整路径 -->
+  <!-- WATCH_SH_PATH:   watch-dispatch.sh 的完整路径 -->
 
   <key>Label</key>
   <string>com.mnote.watch</string>
@@ -19,9 +19,9 @@
     <string>WORK_DIR_PATH</string>
   </array>
 
-  <!-- 每 2 分钟运行一次 -->
+  <!-- 每 5 分钟运行一次 -->
   <key>StartInterval</key>
-  <integer>120</integer>
+  <integer>300</integer>
 
   <key>RunAtLoad</key>
   <true/>
