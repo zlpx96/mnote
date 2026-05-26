@@ -64,34 +64,12 @@
     <div v-else-if="loadError" class="error-msg">{{ loadError }}</div>
     <div v-else-if="tasks.length === 0" class="empty">还没有任务</div>
 
-    <div v-else class="task-list">
-      <!-- pending -->
-      <div v-if="pendingTasks.length" class="section">
-        <div class="section-title">待执行（{{ pendingTasks.length }}）</div>
-        <ul>
-          <li v-for="task in pendingTasks" :key="task.path" class="task-item pending">
-            <div class="task-meta">{{ task.created }}</div>
-            <div class="task-desc">{{ task.desc }}</div>
-          </li>
-        </ul>
-      </div>
-
-      <!-- done -->
-      <div v-if="doneTasks.length" class="section">
-        <div class="section-title">已完成（{{ doneTasks.length }}）</div>
-        <ul>
-          <li
-            v-for="task in doneTasks"
-            :key="task.path"
-            class="task-item done"
-            @click="router.push(`/repo/${NOTE_OWNER}/${NOTE_REPO}/file/${task.path}`)"
-          >
-            <div class="task-meta">{{ task.created }}</div>
-            <div class="task-desc">{{ task.desc }}</div>
-          </li>
-        </ul>
-      </div>
-    </div>
+    <ul v-else class="task-list">
+      <li v-for="task in pendingTasks" :key="task.path" class="task-item pending">
+        <div class="task-meta">{{ task.created }}</div>
+        <div class="task-desc">{{ task.desc }}</div>
+      </li>
+    </ul>
   </div>
 </template>
 
@@ -119,8 +97,7 @@ const withCover = ref(false)
 const sending = ref(false)
 const sendError = ref('')
 
-const pendingTasks = computed(() => tasks.value.filter(t => t.status === 'pending'))
-const doneTasks = computed(() => tasks.value.filter(t => t.status === 'done'))
+const pendingTasks = computed(() => tasks.value)
 
 function closeNew() {
   showNew.value = false
@@ -143,8 +120,7 @@ async function loadTasks() {
   try {
     const { getContents, getFileContent } = useGitProvider(storage.getPlatform(), storage.getToken())
 
-    // 读 pending 和 done 两个目录
-    const dirs = ['tasks/pending', 'tasks/done']
+    const dirs = ['tasks/pending']
     for (const dir of dirs) {
       let files = []
       try {
