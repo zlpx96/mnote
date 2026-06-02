@@ -253,10 +253,8 @@ run_mini() {
 cd "$MNOTE_DATA" || { log "ERROR: 无法进入 $MNOTE_DATA"; exit 1; }
 
 log "git pull..."
-# 只 stash tracked 文件的改动，不动 untracked 的 pending 任务文件
-git stash 2>/dev/null || true
+# watch.log 已 untrack，无需 stash，直接 rebase
 git pull --rebase 2>&1 | tee -a "$LOG_FILE" || log "WARNING: git pull 失败，继续处理本地任务"
-git stash pop 2>/dev/null || true
 
 mkdir -p "$PENDING_DIR" "$DONE_DIR"
 
