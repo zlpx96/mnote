@@ -13,7 +13,7 @@
             @click="switchPlatform('gitee')"
           >Gitee</button>
         </div>
-<button class="icon-btn" @click="showFavorites = !showFavorites" title="收藏">★</button>
+        <button class="icon-btn" @click="showFavorites = !showFavorites" title="收藏">★</button>
         <button class="icon-btn" @click="handleAddBtn" :disabled="addingAll">{{ addingAll ? '…' : '＋' }}</button>
         <button class="icon-btn" @click="handleReset" title="重置 Token">⚙</button>
       </div>
