@@ -49,9 +49,25 @@ const route = useRoute()
 const storage = useStorage()
 const { isFavorite, toggleFavorite } = storage
 
-// 配置 marked：禁止渲染原始 HTML 标签（防 XSS）
+// 配置 marked：禁止渲染原始 HTML 标签（防 XSS），相对路径图片转 GitHub raw URL
 const renderer = new marked.Renderer()
 renderer.html = () => ''
+renderer.image = ({ href, title, text }) => {
+  let src = href || ''
+  // 相对路径转 GitHub raw URL
+  if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+    const owner = route.params.owner
+    const repo = route.params.repo
+    const filePath = route.params.path  // e.g. "mini/once/成长的箴言/施比受更有福.md"
+    // 取文件所在目录
+    const dir = filePath.substring(0, filePath.lastIndexOf('/'))
+    // 去掉 ./ 前缀
+    const imgName = src.replace(/^\.\//, '')
+    src = `https://raw.githubusercontent.com/${owner}/${repo}/main/${dir}/${imgName}`
+  }
+  const titleAttr = title ? ` title="${title}"` : ''
+  return `<img src="${src}" alt="${text || ''}"${titleAttr} style="max-width:100%;border-radius:8px;" />`
+}
 
 const favorited = ref(isFavorite(
   route.params.owner,
