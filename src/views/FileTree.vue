@@ -64,6 +64,9 @@
       >
         <span class="file-icon">{{ item.type === 'dir' ? '📁' : item.name.endsWith('.md') ? '📄' : '·' }}</span>
         <span class="file-name">{{ item.name }}</span>
+        <button class="copy-btn" @click.stop="copyPath(item.path)" :title="item.path">
+          {{ copiedPath === item.path ? '✓' : '⎘' }}
+        </button>
       </li>
     </ul>
   </div>
@@ -186,6 +189,13 @@ async function handleCreate() {
 const loading = ref(false)
 const error = ref('')
 const currentPath = ref('')
+const copiedPath = ref('')
+
+function copyPath(path) {
+  navigator.clipboard.writeText(path)
+  copiedPath.value = path
+  setTimeout(() => { copiedPath.value = '' }, 1500)
+}
 
 const pathSegments = computed(() =>
   currentPath.value ? currentPath.value.split('/') : []
@@ -437,6 +447,22 @@ onMounted(() => loadContents(''))
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #aaa;
+  padding: 4px 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.copy-btn:active {
+  color: #0969da;
 }
 
 .upload-btn {
